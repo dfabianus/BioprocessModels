@@ -3,6 +3,9 @@ uuid = "df947144-fd9f-4de4-99bb-91aacb188bf5"
 authors = ["Fabian Müller"]
 version = "1.0.0-DEV"
 
+[deps]
+ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
+
 [compat]
 julia = "1"
 
