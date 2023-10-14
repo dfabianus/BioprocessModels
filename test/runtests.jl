@@ -3,40 +3,48 @@ using BioprocessModels
 using ModelingToolkit
 using Latexify
 using Symbolics
+using DifferentialEquations
+using Plots
 using Test
 
-@named R = tank(nrInFlows=1, nrOutFlows=1)
+@named F1 = flow()
+@named Fout = flow()
+@named R = tank(F1)
 
 # Define the components
-@named X = component()
-@named S = component(catalyst=X)
-# @named P = component(catalyst=X)
-# @named CO2 = component(catalyst=X)
-# @named O2 = component(catalyst=X)
-components = [X, S]#, P, CO2, O2]
+@named X = component(R)
+@named S = component(R,catalyst=X)
+components = [X, S]
 
 # Define the reactions and couple to components
-@named mnd = monod()
-@named hld = haldane()
+@named mnd = monod(S)
 @named qiS = kinetic(mnd)
-# @named mndhld = monod_haldane()
-# @named qiP = kinetic(mndhld)
-# @named mndhld2 = compose_kinetics(kin1=mnd, kin2=hld)
-# @named qiP2 = kinetic(mndhld2)
 reactions = [qiS]
 
 # Define the reaction system
 @named react = reaction_system(components, reactions)
 
-# Compose 
+@named feedsys = feed_system(components, [F1])
 
+# Compose bioprocess system
+@named bp = bioprocess(R, react, components)
+bpsimp = structural_simplify(bp)
 
-full_equations(react)
-parameters(react)
-equations(qiP)
-latexify(parameters(qiP2))
-@named components = compose(R, X, S, P, CO2, O2)
-
+x0 = [
+    R.V_L => 1.0,
+    X.m => 0.1,
+    S.m => 10.0,
+]
+ts = (0.0, 12.0)
+p = [
+    react.Y_X_qiS => 0.45,
+    react.Y_S_qiS => -1.0,
+    X.M => 26.5,
+    S.M => 30.0,
+]
+prob = ODEProblem(bpsimp, x0, ts, p)
+sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
+plot(sol,idx=[X.m, S.m])
 
 @testset "BioprocessModels.jl" begin
     # Write your tests here.
