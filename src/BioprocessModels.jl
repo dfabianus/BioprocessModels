@@ -129,9 +129,10 @@ end
 
 function reaction_system(componentsArray, reactionsArray; name)
     qi = [reaction.r for reaction in reactionsArray]
-    q = [ParentScope(component.q) for component in componentsArray]
+    q = [component.q for component in componentsArray]
+    q = ParentScope.(q)
+    qi = ParentScope.(qi)
     @parameters Y
-    #Y = ParentScope(Y)
     for (index_c, component) in enumerate(componentsArray)
         if index_c > 1
             Y = hcat(Y, [eval(Meta.parse("@parameters Y_" * String(component.name) * "_" * String(reaction.name)))[1] for reaction in reactionsArray])
@@ -139,6 +140,7 @@ function reaction_system(componentsArray, reactionsArray; name)
             Y = [eval(Meta.parse("@parameters Y_" * String(component.name) * "_" * String(reaction.name)))[1] for reaction in reactionsArray]
         end
     end
+    Y = ParentScope.(Y)
     Y = Y'
     @variables r(t), [description="Reaction rate"]
     #@parameters Y[1:length(componentsArray), 1:length(reactionsArray)], [description="Yields [g/g]"]
@@ -159,7 +161,10 @@ end
 function kinetic(kin::ModelingToolkit.AbstractODESystem; name, r_max=1)
     @parameters r_max=r_max, [description="Maximal reaction rate"]
     @variables r(t), [description="Reaction rate"]
+    r = DelayParentScope(r)
+    r_max = DelayParentScope(r_max)
     @unpack r̃ = kin
+    r̃ = DelayParentScope(r̃)
     extend(ODESystem([r ~ r_max * r̃], name = name), kin)
 end
 
@@ -169,7 +174,9 @@ function monod(substrate; name, K=0.05)
         r̃(t), [description="Reaction rate"],
         #c(t), [description="Substrate concentration"]
         )
+    r̃ = DelayParentScope(r̃)
     c = ParentScope(ParentScope(substrate.c))
+    K = DelayParentScope(K)
     ODESystem([r̃ ~ c / (K + c)], t, [r̃,c], [K], name = name)
 end
 # @named black = blackman(K=0.1)
