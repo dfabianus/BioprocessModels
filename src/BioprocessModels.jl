@@ -18,6 +18,9 @@ function flow(; name)
         F(t), [description="flow rate [L/h]"],
         F_m(t), [description="flow rate [g/h]"]
         )
+    ρ = DelayParentScope(ρ)
+    F = DelayParentScope(F)
+    F_m = DelayParentScope(F_m)
     eqs = [
         F_m ~ ρ * F,
     ]
@@ -60,6 +63,7 @@ function tank(flows...; name)
     @variables (
         V_L(t), [description="liquid volume [L]"],
         )
+    V_L = ParentScope(V_L)
     #inFlows = [flow(name=Symbol("inflow$i")) for i in 1:nrInFlows]
     #outFlows = [flow(name=Symbol("outflow$i")) for i in 1:nrOutFlows]
     #gasFlows = [gasflow(name=Symbol("gasflow$i")) for i in 1:nrGasFlows]
@@ -96,6 +100,7 @@ end
 
 function feed_system(componentsArray, incomingFeedsArray; name)
     @parameters c_F, [description="Feed concentration [g/L]"]
+    c_F = c_F
     @variables Q_in(t)
     for (index_c, component) in enumerate(componentsArray)
         if index_c > 1
@@ -106,20 +111,19 @@ function feed_system(componentsArray, incomingFeedsArray; name)
     end
     c_F = c_F'
     eqs = [
-        [component.Q_in for component in componentsArray] .~ c_F * [feed.F for feed in incomingFeedsArray]
+        [ParentScope(component.Q_in) for component in componentsArray] .~ c_F * [ParentScope(feed.F) for feed in incomingFeedsArray]
     ]
     ODESystem(reduce(vcat,eqs), t, name = name)
 end
 
 
-function bioprocess(reactor, reactionSystem, componentsArray; name)
-    
+function bioprocess(reactor, reactionSystem, componentsArray, feedSystem; name)
+    @unpack F1 = reactor
     eqs = [
-        Q_in ~ c_F * 
-        [D(component.m) for component in componentsArray] .~ [component.r for component in componentsArray],
-        reactor.F.F ~ 0,
+        [D(component.m) for component in componentsArray] .~ [component.r for component in componentsArray] .+ [component.Q_in for component in componentsArray],
+        F1.F ~ 0,
     ]
-    compose(ODESystem(reduce(vcat,eqs), t, name = name), reactor, reactionSystem, componentsArray...)
+    compose(ODESystem(reduce(vcat,eqs), t, name = name), feedSystem, reactor, reactionSystem, componentsArray...)
 end
 
 function reaction_system(componentsArray, reactionsArray; name)

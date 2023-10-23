@@ -27,7 +27,7 @@ reactions = [qiS]
 @named feedsys = feed_system(components, [F1])
 
 # Compose bioprocess system
-@named bp = bioprocess(R, react, components)
+@named bp = bioprocess(R, react, components, feedsys)
 bpsimp = structural_simplify(bp)
 
 x0 = [
