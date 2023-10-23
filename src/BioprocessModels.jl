@@ -100,7 +100,6 @@ end
 
 function feed_system(componentsArray, incomingFeedsArray; name)
     @parameters c_F, [description="Feed concentration [g/L]"]
-    c_F = c_F
     @variables Q_in(t)
     for (index_c, component) in enumerate(componentsArray)
         if index_c > 1
@@ -109,7 +108,9 @@ function feed_system(componentsArray, incomingFeedsArray; name)
             c_F = [eval(Meta.parse("@parameters c_" * String(component.name) * "_" * String(feed.name)))[1] for feed in incomingFeedsArray]
         end
     end
+    c_F = ParentScope.(c_F)
     c_F = c_F'
+    
     eqs = [
         [ParentScope(component.Q_in) for component in componentsArray] .~ c_F * [ParentScope(feed.F) for feed in incomingFeedsArray]
     ]
