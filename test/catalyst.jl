@@ -1,6 +1,8 @@
 using Catalyst
+
 rn = @reaction_network begin
-    k1, 6C --> X
+    yXS * qSmax * S / (kS + S), X --> X
+    qSmax, S --> 0
 end
 
 reactions(rn)
